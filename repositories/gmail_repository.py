@@ -51,7 +51,7 @@ class Gmail:
 
 
   def listar_gmails_ids(self) -> list:
-    response = self.service.users().messages().list(userId = 'me',maxResults = 10,q="-in:trash").execute()
+    response = self.service.users().messages().list(userId = 'me',q="-in:trash",labelIds=['INBOX']).execute()
     messages = response.get('messages')
     list_ids = []
     for message in messages:
@@ -158,16 +158,29 @@ class Gmail:
 
         for palavra in palavras:
           if palavra in gmail_corpo:
-            #Pegar a chave quando achar e somar 1
             pontuacao_labels[chave] = pontuacao_labels.get(chave, 0) + 1
 
-            id_label = labels_gmail.get(chave)
-            # self.alterar_label(gmail_id,id_label)
-            # print(f"Esse Gmail foi movido para a label {chave}")
+      if not pontuacao_labels:
+        print(f"Nao foi encontrado nenhuma label para esse gmail {gmail_corpo}")
+        continue
+      maior_valor = max(pontuacao_labels.values())
+      vencedores = []
+      for nome_label,pontos in pontuacao_labels.items():
+        if maior_valor == pontos:
+          vencedores.append(nome_label)
+
+      if len(vencedores) >= 1:
+        id_label = labels_gmail.get(vencedores[0])
+        self.alterar_label(gmail_id,id_label)
+        print(f"Esse Gmail foi movido para a label {vencedores[0]}")
+
+
+      
+
+
             
-      print(pontuacao_labels)
-      # for nome_label,pontos in pontuacao_labels.items():
-      #   if pontos > maior:
+        
+
 
       
 
