@@ -38,13 +38,12 @@ class AutenticacaoGmail:
 
     return service
       
-class Gmail:
+class GmailInfra:
   def __init__(self):
     repo_autenticacao = AutenticacaoGmail()
     self.repo_label = Label()
     self.repo_mensagem = Mensagem()
     self.service = repo_autenticacao.autenticacao()
-
 
   def listar_gmails_ids(self) -> list:
     response = self.service.users().messages().list(userId = 'me',q="-in:trash",labelIds=['INBOX'],maxResults = 2).execute()
@@ -55,20 +54,38 @@ class Gmail:
 
     return list_ids   
 
-  
-  def listar_gmails_corpo(self) -> dict:
-    mensagens_finais = {}
-    gmail_ids = self.listar_gmails_ids()
-    for gmail_id in gmail_ids:
-      msg = self.repo_mensagem.pegar_corpo_mensagem(gmail_id)
-      mensagens_finais[gmail_id] = msg
-    return mensagens_finais
+  def pegar_corpo_gmail(self,gmail_id) -> str:
+    response = self.service.users().messages().get(userId = 'me',id = gmail_id,format = 'raw').execute()
+    raw = response['raw']
+    msg = message_from_bytes(base64.urlsafe_b64decode(raw))
+    
+    html = None
 
+    for parte in msg.walk():
+      tipo = parte.get_content_type()
+
+      if tipo == "text/plain":
+        return parte.get_payload(decode=True).decode("utf-8", errors="ignore")
+
+      elif tipo == "text/html":
+        html = parte.get_payload(decode=True).decode("utf-8", errors="ignore")
+
+    return html 
+  
+  def alterar_label(self,id_mensagem,label_id) -> list:
+    response = self.service.users().messages().modify(
+      userId = 'me',
+      id = id_mensagem,
+      body={
+        "addLabelIds": [label_id]
+      }
+    ).execute()
+    return response
 
   def classificar_gmails(self) -> str:
     gmails_corpo = self.listar_gmails_corpo()
     LABELS = self.repo_label.gera_chaves()
-    labels_gmail = self.repo_label.listar_labels()
+    labels_gmail = self.service.listar_labels()
 
     for gmail_id,gmail_corpo in gmails_corpo.items():
       pontuacao_labels = {}
@@ -90,57 +107,8 @@ class Gmail:
 
       if len(vencedores) >= 1:
         id_label = labels_gmail.get(vencedores[0])
-        self.repo_label.alterar_label(gmail_id,id_label)
+        self.service.alterar_label(gmail_id,id_label)
         print(f"Esse Gmail foi movido para a label {vencedores[0]}")
-
-
-
-class Mensagem:
-  def __init__(self):
-    repo_autenticacao = AutenticacaoGmail()
-    self.service = repo_autenticacao.autenticacao()
-
-  def transformar_base_64(self,mensagem) -> str:
-    #Como a mensagem vem outro formato, tenho que tirar de bytes
-    msg = message_from_bytes(base64.urlsafe_b64decode(mensagem))
-
-    return msg
-
-  def pegar_corpo_mensagem(self,gmail_id) -> str:
-    response = self.service.users().messages().get(userId = 'me',id = gmail_id,format = 'raw').execute()
-    raw = response['raw']
-    msg = self.transformar_base_64(raw)
-    
-    html = None
-
-    for parte in msg.walk():
-      tipo = parte.get_content_type()
-
-      if tipo == "text/plain":
-        return parte.get_payload(decode=True).decode("utf-8", errors="ignore")
-
-      elif tipo == "text/html":
-        html = parte.get_payload(decode=True).decode("utf-8", errors="ignore")
-
-    return html 
-
-
-
-class Label:
-  def __init__(self):
-    repo_autenticacao = AutenticacaoGmail()
-    self.service = repo_autenticacao.autenticacao()
-
-  def alterar_label(self,id_mensagem,label_id) -> list:
-    response = self.service.users().messages().modify(
-      userId = 'me',
-      id = id_mensagem,
-      body={
-        "addLabelIds": [label_id]
-      }
-    ).execute()
-    return response
-  
 
   def listar_labels(self) -> list:
     response = self.service.users().labels().list(userId='me').execute()
@@ -151,7 +119,15 @@ class Label:
       id_label = label['id']
       name_labels[nome_label] = id_label
     return name_labels
+
+
+
+
   
+
+
+
+class Label:
 
   def gera_chaves(self) -> dict:
     LABELS = {
