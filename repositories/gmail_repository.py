@@ -58,7 +58,7 @@ class GmailInfra:
     response = self.service.users().messages().get(userId = 'me',id = gmail_id,format = 'raw').execute()
     raw = response['raw']
     msg = message_from_bytes(base64.urlsafe_b64decode(raw))
-    
+
     html = None
 
     for parte in msg.walk():
@@ -82,33 +82,7 @@ class GmailInfra:
     ).execute()
     return response
 
-  def classificar_gmails(self) -> str:
-    gmails_corpo = self.listar_gmails_corpo()
-    LABELS = self.repo_label.gera_chaves()
-    labels_gmail = self.service.listar_labels()
-
-    for gmail_id,gmail_corpo in gmails_corpo.items():
-      pontuacao_labels = {}
-
-      for chave,palavras in LABELS.items():
-        for palavra in palavras:
-          if palavra in gmail_corpo:
-            pontuacao_labels[chave] = pontuacao_labels.get(chave, 0) + 1
-
-      if not pontuacao_labels:
-        print(f"Nao foi encontrado nenhuma label para esse gmail {gmail_corpo}")
-        continue
-      maior_valor = max(pontuacao_labels.values())
-      vencedores = []
-
-      for nome_label,pontos in pontuacao_labels.items():
-        if maior_valor == pontos:
-          vencedores.append(nome_label)
-
-      if len(vencedores) >= 1:
-        id_label = labels_gmail.get(vencedores[0])
-        self.service.alterar_label(gmail_id,id_label)
-        print(f"Esse Gmail foi movido para a label {vencedores[0]}")
+  
 
   def listar_labels(self) -> list:
     response = self.service.users().labels().list(userId='me').execute()
