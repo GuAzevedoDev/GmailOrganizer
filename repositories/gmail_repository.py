@@ -41,8 +41,6 @@ class AutenticacaoGmail:
 class GmailInfra:
   def __init__(self):
     repo_autenticacao = AutenticacaoGmail()
-    self.repo_label = Label()
-    self.repo_mensagem = Mensagem()
     self.service = repo_autenticacao.autenticacao()
 
   def listar_gmails_ids(self) -> list:
@@ -82,8 +80,6 @@ class GmailInfra:
     ).execute()
     return response
 
-  
-
   def listar_labels(self) -> list:
     response = self.service.users().labels().list(userId='me').execute()
     labels = response.get('labels')
@@ -95,58 +91,3 @@ class GmailInfra:
     return name_labels
 
 
-
-
-  
-
-
-
-class Label:
-
-  def gera_chaves(self) -> dict:
-    LABELS = {
-    "CURRICULO": [
-        "curriculo",
-        "resume",
-        "vaga",
-        "entrevista",
-        "processo seletivo",
-        "gupy",
-        "linkedin",
-        "candidato"
-    ],
-    "COMPRAS": [
-        "pedido",
-        "compra",
-        "nota fiscal",
-        "rastreamento",
-        "entrega",
-        "mercado livre",
-        "amazon",
-        "shopee"
-    ],
-    "BANCOS": [
-        "pix",
-        "transferência",
-        "saldo",
-        "extrato",
-        "nubank",
-        "inter",
-        "itau"
-    ]
-  }
-    return LABELS
-
-
-            
-        
-
-
-      
-
-
-   
-
-repo_gmail = Gmail()
-
-repo_gmail.classificar_gmails()
