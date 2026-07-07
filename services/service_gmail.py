@@ -37,7 +37,7 @@ class ClassificadorService:
     }
     return LABELS
 
-  def classificar_label(self,corpo_gmail:str,LABELS:dict) -> str:
+  def classificar_label(self,corpo_gmail:str,LABELS:dict) -> str | None:
     pontuacao_labels = {}
 
     #Percorrer as palavras das labels que classificam

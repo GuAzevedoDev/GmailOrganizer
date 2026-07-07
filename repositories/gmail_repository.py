@@ -6,9 +6,15 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient import errors
 import base64
+from googleapiclient.errors import HttpError
 from email import message_from_bytes
 
 #pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+class ConexaoError(Exception):
+  pass
+
+
 
 class AutenticacaoGmail:
 
@@ -44,7 +50,10 @@ class GmailInfra:
     self.service = repo_autenticacao.autenticacao()
 
   def listar_gmails_ids(self) -> list:
-    response = self.service.users().messages().list(userId = 'me',q="-in:trash",labelIds=['INBOX'],maxResults = 2).execute()
+    try:
+      response = self.service.users().messages().list(userId = 'me',q="-in:trash",labelIds=['INBOX'],maxResults = 2).execute()
+    except HttpError as e:
+      raise ConexaoError("Não foi possivel conectar com a api do Gmail") from e
     messages = response.get('messages')
     list_ids = []
     for message in messages:
@@ -53,7 +62,10 @@ class GmailInfra:
     return list_ids   
 
   def pegar_corpo_gmail(self,gmail_id) -> str:
-    response = self.service.users().messages().get(userId = 'me',id = gmail_id,format = 'raw').execute()
+    try:
+      response = self.service.users().messages().get(userId = 'me',id = gmail_id,format = 'raw').execute()
+    except HttpError as e:
+      raise ConexaoError("Não foi possivel conectar com a api do Gmail") from e
     raw = response['raw']
     msg = message_from_bytes(base64.urlsafe_b64decode(raw))
 
@@ -71,23 +83,31 @@ class GmailInfra:
     return html 
   
   def alterar_label(self,id_mensagem,label_id) -> list:
-    response = self.service.users().messages().modify(
-      userId = 'me',
-      id = id_mensagem,
-      body={
-        "addLabelIds": [label_id]
-      }
-    ).execute()
+    try:
+      response = self.service.users().messages().modify(
+        userId = 'me',
+        id = id_mensagem,
+        body={
+          "addLabelIds": [label_id]
+        }
+      ).execute()
+    except HttpError as e:
+      raise ConexaoError("Não foi possivel conectar com a api do Gmail") from e
+
     return response
 
   def listar_labels(self) -> list:
-    response = self.service.users().labels().list(userId='me').execute()
+    try:
+      response = self.service.users().labels().list(userId='me').execute()
+    except HttpError as e:
+      raise ConexaoError("Não foi possivel conectar com a api do Gmail") from e
     labels = response.get('labels')
     name_labels = {}
     for label in labels:
       nome_label = label['name']
       id_label = label['id']
       name_labels[nome_label] = id_label
+        
     return name_labels
 
 
