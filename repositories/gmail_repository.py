@@ -23,19 +23,21 @@ class AutenticacaoGmail:
     SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
     creds = None
 
-    if os.path.exists('token.pickle'):
-      with open('token.pickle', 'rb') as token:
-        creds = pickle.load(token)
+    try:
+      if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+          creds = pickle.load(token)
 
-    if not creds or not creds.valid:
-      if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-      else:
-        flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-        creds = flow.run_local_server(port=0)
-        with open('token.pickle', 'wb') as token:
-          pickle.dump(creds, token)
-
+      if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+          creds.refresh(Request())
+        else:
+          flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+          creds = flow.run_local_server(port=0)
+          with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    except:
+      raise ConexaoError("Não foi possivel obter as credenciais, verifique se seu credentials.json existe")
     return creds
   
   def autenticacao(self): 
@@ -51,7 +53,7 @@ class GmailInfra:
 
   def listar_gmails_ids(self) -> list:
     try:
-      response = self.service.users().messages().list(userId = 'me',q="-in:trash",labelIds=['INBOX'],maxResults = 2).execute()
+      response = self.service.users().messages().list(userId = 'me',q="-in:trash",labelIds=['INBOX'],maxResults = 10).execute()
     except HttpError as e:
       raise ConexaoError("Não foi possivel conectar com a api do Gmail") from e
     messages = response.get('messages')
